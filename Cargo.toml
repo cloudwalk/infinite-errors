@@ -1,0 +1,3 @@
+[workspace]
+members = ["infinite-errors", "infinite-errors-macros"]
+resolver = "2"
