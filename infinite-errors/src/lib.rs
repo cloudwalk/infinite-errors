@@ -1,13 +1,28 @@
 //! Generic error handling framework with static backtraces.
 
-#[cfg(test)]
-mod test;
-
 use std::panic::Location;
 
 pub use derive_more::Error;
 pub use infinite_errors_macros::err_context;
 
+/// Generate a rich error type using a given error kind.
+///
+/// The type will be called `Error`. Also generates an `ErrorContext` trait
+/// similar to [ErrorContext] but specialized for this new error type.
+///
+/// The reason why we cannot define an error type in this crate and export it
+/// is because orphan rules would make the `?` operator more awkward to use.
+///
+/// # Usage
+///
+/// Define your error kind and then call this macro with that error kind as
+/// argument:
+///
+/// ```ignore
+/// declare_error_type!(ErrorKind);
+/// ```
+///
+/// Both the error type and the generated `ErrorContext` trait will be `pub`.
 #[macro_export]
 macro_rules! declare_error_type {
     ($error_kind:ident) => {
@@ -75,13 +90,53 @@ macro_rules! declare_error_type {
             }
         }
 
-        impl<T> From<T> for Error
+        impl<T> ::std::convert::From<T> for Error
         where
-            T: Into<$error_kind>,
+            T: ::std::convert::Into<$error_kind>,
         {
             #[track_caller]
             fn from(kind: T) -> Self {
                 Self::new(kind.into(), ::std::panic::Location::caller())
+            }
+        }
+
+        /// Helper trait to add context to errors.
+        pub trait ErrorContext<T> {
+            /// Add an error kind to the top of the error backtrace.
+            #[track_caller]
+            fn err_context(self, kind: $error_kind) -> ::std::result::Result<T, Error>;
+
+            /// Add an error kind returned by a function to the top of the error
+            /// backtrace. The function should only be called if `self` is indeed an
+            /// error.
+            #[track_caller]
+            fn err_context_with(
+                self,
+                kind: impl FnOnce() -> $error_kind,
+            ) -> ::std::result::Result<T, Error>;
+        }
+
+        impl<T, OE> ErrorContext<T> for ::std::result::Result<T, OE>
+        where
+            OE: Into<Error>,
+        {
+            fn err_context(self, kind: $error_kind) -> ::std::result::Result<T, Error> {
+                self.map_err(|x| Error {
+                    kind,
+                    cause: ::std::option::Option::Some(::std::boxed::Box::new(x.into())),
+                    location: ::std::panic::Location::caller(),
+                })
+            }
+
+            fn err_context_with(
+                self,
+                f: impl FnOnce() -> $error_kind,
+            ) -> ::std::result::Result<T, Error> {
+                self.map_err(|x| Error {
+                    kind: f(),
+                    cause: ::std::option::Option::Some(::std::boxed::Box::new(x.into())),
+                    location: ::std::panic::Location::caller(),
+                })
             }
         }
     };
@@ -102,6 +157,9 @@ pub trait ErrorType {
 }
 
 /// Helper trait to add context to errors.
+///
+/// Most likely you want to use the trait of the same name and API generated
+/// by [declare_error_type].
 pub trait ErrorContext<T, K, E> {
     /// Add an error kind to the top of the error backtrace.
     #[track_caller]
@@ -123,7 +181,7 @@ where
         self.map_err(|x| E::new(kind, Some(Box::new(x.into())), Location::caller()))
     }
 
-    fn err_context_with(self, f: impl FnOnce() -> K) -> ::std::result::Result<T, E> {
+    fn err_context_with(self, f: impl FnOnce() -> K) -> Result<T, E> {
         self.map_err(|x| E::new(f(), Some(Box::new(x.into())), Location::caller()))
     }
 }

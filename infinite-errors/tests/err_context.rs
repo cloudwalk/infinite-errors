@@ -1,7 +1,7 @@
 use assert_matches::assert_matches;
 use derive_more::{Display, From};
 
-use infinite_errors::{declare_error_type, err_context, ErrorContext};
+use infinite_errors::{declare_error_type, err_context};
 
 const BASE_ERROR_MESSAGE: &str = "test";
 
