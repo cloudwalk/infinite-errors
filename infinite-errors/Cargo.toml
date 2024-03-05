@@ -2,7 +2,7 @@
 name = "infinite-errors"
 description = "Generic error handling framework with static backtraces"
 authors = ["cloudwalk.io"]
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 license = "MIT"
 repository = "https://github.com/cloudwalk/infinite-errors"
@@ -11,7 +11,7 @@ categories = ["development-tools::debugging"]
 
 [dependencies]
 derive_more = { version = "0.99.17", default-features = false, features = ["error"] }
-infinite-errors-macros ={ version = "0.1.0", path = "../infinite-errors-macros" }
+infinite-errors-macros = { version = "0.2.0", path = "../infinite-errors-macros" }
 
 [dev-dependencies]
 assert_matches = { version = "1.5.0", default-features = false }
