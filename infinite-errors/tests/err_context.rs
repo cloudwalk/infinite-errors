@@ -1,17 +1,53 @@
 use assert_matches::assert_matches;
 use derive_more::{Display, From};
 
-use infinite_errors::{err_context, Error};
+use infinite_errors::{declare_error_type, err_context, ErrorContext};
 
 const BASE_ERROR_MESSAGE: &str = "test";
 
 #[derive(Debug, Display, From)]
-enum TestErrorKind {
+pub enum TestErrorKind {
     Context,
     BaseError(&'static str),
 }
 
-type TestResult = Result<(), Error<TestErrorKind>>;
+declare_error_type!(TestErrorKind);
+
+type TestResult = Result<(), Error>;
+
+#[test]
+fn err_context_ok() {
+    let res: TestResult = TestResult::Ok(()).err_context(TestErrorKind::Context);
+    res.unwrap();
+}
+
+#[test]
+fn err_context_err() {
+    let err: Error = TestResult::Err(Error::from(TestErrorKind::BaseError("test")))
+        .err_context(TestErrorKind::Context)
+        .unwrap_err();
+
+    assert_matches!(err.kind(), TestErrorKind::Context);
+    assert_matches!(
+        err.cause().unwrap().kind(),
+        TestErrorKind::BaseError("test")
+    );
+    assert_matches!(err.cause().unwrap().cause(), None);
+}
+
+#[test]
+fn err_context_with_err() {
+    let err: Error = TestResult::Err(Error::from(TestErrorKind::BaseError("test")))
+        .err_context_with(|| TestErrorKind::Context)
+        .unwrap_err();
+
+    assert_matches!(err.kind(), TestErrorKind::Context);
+    assert_matches!(
+        err.cause().unwrap().kind(),
+        TestErrorKind::BaseError("test")
+    );
+    assert_matches!(err.cause().unwrap().cause(), None);
+}
 
 #[test]
 fn err_context_macro_fn() {
