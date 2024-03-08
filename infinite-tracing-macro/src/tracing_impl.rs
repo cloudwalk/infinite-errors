@@ -1,14 +1,10 @@
+use crate::parameters::{MacroArgs, ReturnLogOptions};
 use proc_macro2::{Ident, Span};
-use syn::{ItemFn, LitStr};
 use syn::punctuated::Punctuated;
 use syn::token::Comma;
-use crate::parameters::{MacroArgs, ReturnLogOptions};
+use syn::{ItemFn, LitStr};
 
-pub fn instrument(
-    parameters: MacroArgs,
-    fn_item: ItemFn,
-) -> proc_macro2::TokenStream {
-
+pub fn instrument(parameters: MacroArgs, fn_item: ItemFn) -> proc_macro2::TokenStream {
     let ingress_log_level: Option<LitStr> = None; //Some(LitStr::new("info", Span::call_site()));
     let ok_result_log_level = LitStr::new("info", Span::call_site());
     let err_result_log_level = LitStr::new("error", Span::call_site());
@@ -20,7 +16,9 @@ pub fn instrument(
     // IMPORTANT: tricky var ahead:
     //   1) the special value of `None` means "do not log parameters at all"
     //   2) if `Some`, it contains the list of parameters to skip
-    let skip_options: Option<Vec<String>> = parameters.log_parameters.then_some(parameters.parameters_to_skip);
+    let skip_options: Option<Vec<String>> = parameters
+        .log_parameters
+        .then_some(parameters.parameters_to_skip);
     let ingress_params = if let Some(ingress_log_level) = ingress_log_level {
         quote!(ingress=#ingress_log_level)
     } else {
@@ -29,22 +27,23 @@ pub fn instrument(
     let degress_params = match parameters.log_return {
         ReturnLogOptions::Skip => {
             quote!()
-        },
+        }
         ReturnLogOptions::LogErrOnly => {
             quote!(err=#err_result_log_level,)
-        },
+        }
         ReturnLogOptions::LogOkOnly => {
             quote!(ok=#ok_result_log_level,)
-        },
+        }
         ReturnLogOptions::LogResult => {
             quote!(err=#err_result_log_level, ok=#ok_result_log_level,)
-        },
+        }
         ReturnLogOptions::LogNonFallible => {
             quote!(egress=#ok_result_log_level,)
-        },
+        }
     };
     let skip_params = if let Some(to_skip) = skip_options {
-        let skip_punctuated_list: Punctuated<Ident, Comma> = to_skip.into_iter()
+        let skip_punctuated_list: Punctuated<Ident, Comma> = to_skip
+            .into_iter()
             .map(|param_name| Ident::new(&param_name, Span::call_site()))
             .collect();
         quote!(skip=[#skip_punctuated_list], )
@@ -70,10 +69,9 @@ pub fn instrument(
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use quote::ToTokens;
     use syn::{Block, ReturnType, Signature, Visibility};
-    use super::*;
-
 
     /// If no parameters are provided, the `minitrace` annotation should be issued,
     /// but `logcall`s don't, as the latter doesn't accept parameterless invocations.
@@ -87,7 +85,10 @@ mod tests {
         };
         let fn_tokens = test_fn_item();
         let observed_fn_def = instrument(parameters, fn_tokens).to_string();
-        assert_eq!(observed_fn_def, expected_fn_def, "Function definition attributes mismatch");
+        assert_eq!(
+            observed_fn_def, expected_fn_def,
+            "Function definition attributes mismatch"
+        );
     }
 
     /// By specifying "Log Err Results", the logging of params is also activated for `logcall`.
@@ -103,7 +104,10 @@ mod tests {
         };
         let fn_tokens = test_fn_item();
         let observed_fn_def = instrument(parameters, fn_tokens).to_string();
-        assert_eq!(observed_fn_def, expected_fn_def, "Function definition attributes mismatch");
+        assert_eq!(
+            observed_fn_def, expected_fn_def,
+            "Function definition attributes mismatch"
+        );
     }
 
     /// By specifying "skipall", the logging of params is deactivated for `logcall`.
@@ -111,7 +115,8 @@ mod tests {
     /// #[instrument(err, skip_all)]
     #[test]
     fn log_result_but_no_params_on_err() {
-        let expected_fn_def = r#"# [:: minitrace :: trace] # [:: logcall :: logcall (err = "error" ,)] fn a () { }"#;
+        let expected_fn_def =
+            r#"# [:: minitrace :: trace] # [:: logcall :: logcall (err = "error" ,)] fn a () { }"#;
         let parameters = MacroArgs {
             log_return: ReturnLogOptions::LogErrOnly,
             log_parameters: false,
@@ -119,7 +124,10 @@ mod tests {
         };
         let fn_tokens = test_fn_item();
         let observed_fn_def = instrument(parameters, fn_tokens).to_string();
-        assert_eq!(observed_fn_def, expected_fn_def, "Function definition attributes mismatch");
+        assert_eq!(
+            observed_fn_def, expected_fn_def,
+            "Function definition attributes mismatch"
+        );
     }
 
     /// By specifying a `parameters_to_skip` list, `logcall` should be informed of it.
@@ -131,14 +139,19 @@ mod tests {
         let parameters = MacroArgs {
             log_return: ReturnLogOptions::LogErrOnly,
             log_parameters: true,
-            parameters_to_skip: vec!["password", "secret"].into_iter().map(|e| e.to_string()).collect(),
+            parameters_to_skip: vec!["password", "secret"]
+                .into_iter()
+                .map(|e| e.to_string())
+                .collect(),
             ..MacroArgs::default()
         };
         let fn_tokens = test_fn_item();
         let observed_fn_def = instrument(parameters, fn_tokens).to_string();
-        assert_eq!(observed_fn_def, expected_fn_def, "Function definition attributes mismatch");
+        assert_eq!(
+            observed_fn_def, expected_fn_def,
+            "Function definition attributes mismatch"
+        );
     }
-
 
     // helper functions
     ///////////////////
@@ -163,7 +176,10 @@ mod tests {
                 variadic: None,
                 output: ReturnType::Default,
             },
-            block: Box::new(Block { brace_token: Default::default(), stmts: vec![] }),
+            block: Box::new(Block {
+                brace_token: Default::default(),
+                stmts: vec![],
+            }),
         }
     }
 }

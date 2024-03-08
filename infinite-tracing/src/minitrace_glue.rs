@@ -1,7 +1,6 @@
 use minitrace::collector::{Config, Reporter, SpanRecord};
-use uuid::Uuid;
 use serde_json::json;
-
+use uuid::Uuid;
 
 pub fn setup_minitrace(output_fn: impl std::io::Write + Send + 'static) {
     let json_reporter = JsonReporter::new(output_fn);
@@ -12,17 +11,13 @@ pub fn teardown_minitrace() {
     minitrace::flush();
 }
 
-
 pub struct JsonReporter<WriteImpl: std::io::Write> {
     writer: WriteImpl,
 }
 
 impl<WriteImpl: std::io::Write> JsonReporter<WriteImpl> {
-
     pub fn new(writer: WriteImpl) -> Self {
-        Self {
-            writer,
-        }
+        Self { writer }
     }
 }
 
@@ -45,7 +40,10 @@ impl<WriteImpl: std::io::Write + Send + 'static> Reporter for JsonReporter<Write
                         "message" => message = property_value,
                         "file" => file = property_value,
                         "line" => line = property_value,
-                        _ => { structured_fields.insert(property_key.to_string(), json!(property_value)); },
+                        _ => {
+                            structured_fields
+                                .insert(property_key.to_string(), json!(property_value));
+                        }
                     }
                 }
                 let log_line = json!({

@@ -1,5 +1,5 @@
-mod structured_logger_glue;
 mod minitrace_glue;
+mod structured_logger_glue;
 
 pub use infinite_tracing_macro::instrument;
 

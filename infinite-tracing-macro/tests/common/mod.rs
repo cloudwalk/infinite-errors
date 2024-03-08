@@ -1,34 +1,33 @@
-use std::marker::PhantomData;
-use std::sync::Arc;
-use std::time::Duration;
 use minitrace::local::LocalParentGuard;
 use minitrace::prelude::SpanContext;
 use minitrace::Span;
 use once_cell::sync::Lazy;
-use parking_lot::{Mutex, RawMutex};
 use parking_lot::lock_api::RawMutex as _RawMutexInit;
-
+use parking_lot::{Mutex, RawMutex};
+use std::marker::PhantomData;
+use std::sync::Arc;
+use std::time::Duration;
 
 /// Initializes `minitrace` and exposes the `log_collector_generator` function, which is used by [follow_logs()].
-static LOG_COLLECTOR_GENERATOR: Lazy< Box< dyn Fn(Span, LocalParentGuard) -> Box<dyn FnOnce() -> Vec<String>> + Send + Sync> > = Lazy::new(|| {
+static LOG_COLLECTOR_GENERATOR: Lazy<
+    Box<dyn Fn(Span, LocalParentGuard) -> Box<dyn FnOnce() -> Vec<String>> + Send + Sync>,
+> = Lazy::new(|| {
     let reporter = LogCollector::new();
     let generate_log_collector = reporter.log_collector_generator();
     infinite_tracing::setup_infinite_tracing(reporter.writer());
     Box::new(generate_log_collector)
 });
 
-
 /// Tests should call this to start capturing log events.\
 /// The returned value is a closure that should be called to
 /// collect the emitted log events, for assertion.
 pub fn follow_logs() -> impl FnOnce() -> Vec<String> {
-    let generate_log_collector = LOG_COLLECTOR_GENERATOR.as_ref();  // tricky line: causes the static initialization code to run **before** we call the next `minitrace` functions
+    let generate_log_collector = LOG_COLLECTOR_GENERATOR.as_ref(); // tricky line: causes the static initialization code to run **before** we call the next `minitrace` functions
     let root_span = Span::root("test method", SpanContext::random());
     let guard = root_span.set_local_parent();
     let collector = generate_log_collector(root_span, guard);
     collector
 }
-
 
 /// Tricky struct to allow capturing `minitrace` log events, for test assertions:
 ///   1) As this struct is instantiated, [Self::log_collector_generator()] must be called;
@@ -52,7 +51,6 @@ pub struct LogCollector {
 }
 
 impl LogCollector {
-
     pub fn new() -> Self {
         Self {
             collected: Arc::new(Mutex::new(Vec::new())),
@@ -93,28 +91,36 @@ impl LogCollector {
 
     /// Weird API needed for `minitrace` to do its shenanigans: [Self::log_collector()] can only do its
     /// business after dropping minitrace's `span` and `guard`
-    pub fn log_collector_generator(&self) -> impl Fn(/*span: */Span, /*guard: */LocalParentGuard) -> Box<dyn FnOnce() -> Vec<String>> {
+    pub fn log_collector_generator(
+        &self,
+    ) -> impl Fn(
+        /*span: */ Span,
+        /*guard: */ LocalParentGuard,
+    ) -> Box<dyn FnOnce() -> Vec<String>> {
         let usage_lock = self.usage_lock.clone();
         let collected = self.collected.clone();
         move |span, guard| Box::new(Self::log_collector(&usage_lock, &collected, span, guard))
     }
 
-    fn log_collector(usage_lock: &Arc<RawMutex>, collected: &Arc<Mutex<Vec<String>>>, span: Span, guard: LocalParentGuard) -> impl FnOnce() -> Vec<String> {
+    fn log_collector(
+        usage_lock: &Arc<RawMutex>,
+        collected: &Arc<Mutex<Vec<String>>>,
+        span: Span,
+        guard: LocalParentGuard,
+    ) -> impl FnOnce() -> Vec<String> {
         let usage_lock = usage_lock.clone();
         // the log collector was called: a new test started:
         usage_lock.lock();
-        collected.lock()
-            .clear();
+        collected.lock().clear();
         let collected = Arc::clone(&collected);
         move || {
             drop(span);
             drop(guard);
             minitrace::flush();
-            std::thread::sleep(Duration::from_millis(1));   // really needed?
+            std::thread::sleep(Duration::from_millis(1)); // really needed?
             let collected = collected.lock().clone();
             unsafe { usage_lock.unlock() };
             collected
         }
     }
-
 }
