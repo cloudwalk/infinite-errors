@@ -1,10 +1,8 @@
-use proc_macro2::{Ident, Span, TokenStream};
-use syn::{Expr, ExprLit, ItemFn, Lit, LitStr, MetaNameValue};
-use syn::parse::Parse;
+use proc_macro2::{Ident, Span};
+use syn::{ItemFn, LitStr};
 use syn::punctuated::Punctuated;
 use syn::token::Comma;
 use crate::parameters::{MacroArgs, ReturnLogOptions};
-use crate::tracing_impl;
 
 pub fn instrument(
     parameters: MacroArgs,
@@ -22,7 +20,7 @@ pub fn instrument(
     // IMPORTANT: tricky var ahead:
     //   1) the special value of `None` means "do not log parameters at all"
     //   2) if `Some`, it contains the list of parameters to skip
-    let mut skip_options: Option<Vec<String>> = parameters.log_parameters.then(|| parameters.parameters_to_skip);
+    let skip_options: Option<Vec<String>> = parameters.log_parameters.then_some(parameters.parameters_to_skip);
     let ingress_params = if let Some(ingress_log_level) = ingress_log_level {
         quote!(ingress=#ingress_log_level)
     } else {

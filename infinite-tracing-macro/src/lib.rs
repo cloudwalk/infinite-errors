@@ -1,7 +1,6 @@
 #![doc = include_str!("../README.md")]
 #![recursion_limit = "256"]
 
-use proc_macro2::*;
 use syn::*;
 use crate::parameters::MacroArgs;
 

@@ -1,8 +1,7 @@
 use proc_macro2::Span;
 use quote::ToTokens;
 use syn::parse::{Parse, ParseStream};
-use syn::{bracketed, Expr, Ident, LitStr, Meta, MetaList, MetaNameValue, parenthesized, Token, token, Type};
-use syn::Pat::Paren;
+use syn::{Ident, Meta, parenthesized, Token, token};
 use syn::punctuated::Punctuated;
 
 #[derive(Debug,PartialEq)]
@@ -62,35 +61,35 @@ impl Parse for MacroArgs {
                         "err" => {
                             macro_args.log_return = log_return_set
                                 .replace(())
-                                .and_then(|_| Some(Err(syn::Error::new(Span::call_site(), String::from(INVALID_IDENTIFIER_COMBINATION) ))))
+                                .map(|_| Err(syn::Error::new(Span::call_site(), String::from(INVALID_IDENTIFIER_COMBINATION) )))
                                 .unwrap_or(Ok(ReturnLogOptions::LogErrOnly))?;
                         },
                         "ok" => {
                             macro_args.log_return = log_return_set
                                 .replace(())
-                                .and_then(|_| Some(Err(syn::Error::new(Span::call_site(), String::from(INVALID_IDENTIFIER_COMBINATION) ))))
+                                .map(|_| Err(syn::Error::new(Span::call_site(), String::from(INVALID_IDENTIFIER_COMBINATION) )))
                                 .unwrap_or(Ok(ReturnLogOptions::LogResult))?;
                         },
                         "ret" => {
                             macro_args.log_return = log_return_set
                                 .replace(())
-                                .and_then(|_| Some(Err(syn::Error::new(Span::call_site(), String::from(INVALID_IDENTIFIER_COMBINATION) ))))
+                                .map(|_| Err(syn::Error::new(Span::call_site(), String::from(INVALID_IDENTIFIER_COMBINATION) )))
                                 .unwrap_or(Ok(ReturnLogOptions::LogNonFallible))?;
                         },
                         "skip_all" => {
                             macro_args.log_parameters = skip_set.replace(())
-                                .and_then(|_| Some(Err(syn::Error::new(Span::call_site(), String::from(INVALID_SKIP_COMBINATION) ))))
+                                .map(|_| Err(syn::Error::new(Span::call_site(), String::from(INVALID_SKIP_COMBINATION) )))
                                 .unwrap_or(Ok(false))?;
 
                         }
-                        _ => return Err(syn::Error::new(Span::call_site(), format!("Unknown identifier parameter '{}' -- known ones are: 'err', 'ok', 'ret', 'skip_all'", ident.to_string()))),
+                        _ => return Err(syn::Error::new(Span::call_site(), format!("Unknown identifier parameter '{}' -- known ones are: 'err', 'ok', 'ret', 'skip_all'", ident))),
                     }
                 } else if input.lookahead1().peek(token::Paren) {
                     // name(identifier list) parsing -- "func"
                     match ident.to_string().as_str() {
                         "skip" => {
                             skip_set.replace(())
-                                .and_then(|_| Some(Err(syn::Error::new(Span::call_site(), String::from(INVALID_SKIP_COMBINATION) ))))
+                                .map(|_| Err(syn::Error::new(Span::call_site(), String::from(INVALID_SKIP_COMBINATION) )))
                                 .unwrap_or(Ok(()))?;
                             let content;
                             parenthesized!(content in input);
@@ -99,11 +98,12 @@ impl Parse for MacroArgs {
                             macro_args.parameters_to_skip = punc.into_iter().map(|s| s.to_token_stream().to_string()).collect();
                             macro_args.log_parameters = true;
                         },
-                        _ => return Err(syn::Error::new(Span::call_site(), format!("Unknown func parameter '{}' -- known one is: 'skip'", ident.to_string()))),
+                        _ => return Err(syn::Error::new(Span::call_site(), format!("Unknown func parameter '{}' -- known one is: 'skip'", ident))),
                     }
                 } else if input.parse::<Token![=]>().is_ok() {
                     // name=value parsing
                     match ident.to_string().as_str() {
+                        /* FILL HERE MORE OPTIONS IN THE FUTURE */
                         _ => {
                             // custom name=val parameters
                             let name = ident.to_string();
@@ -117,7 +117,7 @@ impl Parse for MacroArgs {
                     return Err(syn::Error::new(Span::call_site(), format!("Can't parse parameter {:?} -- parameters should either be in the forms name=value, name(values_list) or name (standalone identifiers)", input.to_string())));
                 }
             } else {
-                return Err(syn::Error::new(Span::call_site(), format!("Can't the reminder of the parameters. An Identifier was expected next: {}", input.to_string())));
+                return Err(syn::Error::new(Span::call_site(), format!("Can't the reminder of the parameters. An Identifier was expected next: {}", input)));
             }
             // consume any unconsumed ','
             input.parse::<Token![,]>().ok();

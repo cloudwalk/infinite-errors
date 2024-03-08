@@ -1,4 +1,3 @@
-use std::marker::PhantomData;
 use minitrace::collector::{Config, Reporter, SpanRecord};
 use uuid::Uuid;
 use serde_json::json;
@@ -51,11 +50,11 @@ impl<WriteImpl: std::io::Write + Send + 'static> Reporter for JsonReporter<Write
                 }
                 let log_line = json!({
                     "time": timestamp,
-                    "target": span.name,
+                    "target": target,
                     "logging.googleapis.com/sourceLocation": {"FILE": file, "LINE": line},
                     "span": structured_fields,
                     "traceId": trace_id,
-                    "severity": event.name,
+                    "severity": severity,
                     "message": message,
                 });
                 let mut write_op = || {

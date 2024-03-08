@@ -16,7 +16,7 @@ pub fn setup_structured_logger() {
                     "message" => (Cow::Borrowed("message"), v.to_string()),
                     "timestamp" => {
                         let timestamp_ms = v.to_u64().unwrap_or(u64::MAX);
-                        let chrono_time = chrono::NaiveDateTime::from_timestamp_opt((timestamp_ms / 1_000) as i64, 1000_000 * (timestamp_ms % 1_000) as u32).unwrap_or(chrono::NaiveDateTime::MIN);
+                        let chrono_time = chrono::NaiveDateTime::from_timestamp_opt((timestamp_ms / 1_000) as i64, 1_000_000 * (timestamp_ms % 1_000) as u32).unwrap_or(chrono::NaiveDateTime::MIN);
                         let timestamp_str = chrono_time.format("%Y-%m-%dT%H:%M:%S%.3fZ").to_string();
                         (Cow::Borrowed("timestamp"), timestamp_str)
                     },
@@ -33,5 +33,5 @@ pub fn setup_structured_logger() {
 }
 
 pub fn teardown_structured_logger() {
-    _ = std::io::stdout().flush().unwrap();
+    std::io::stdout().flush().unwrap();
 }
