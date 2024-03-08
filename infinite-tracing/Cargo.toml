@@ -1,0 +1,24 @@
+[package]
+name = "infinite-tracing"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+log = "0.4"
+infinite-tracing-macro = { path = "../infinite-tracing-macro" }
+logcall = { git = "https://github.com/cloudwalk/logcall", branch = "log_inputs" }
+minitrace = { version = "0.6", features = ["enable"] }
+structured-logger = "1"
+chrono = "0.4"
+uuid = { version = "1.7", features = ["v4"] }
+serde = { version = "1.0.197", features = ["derive"] }
+serde_json = "1.0.114"
+
+[dev-dependencies]
+ctor = "0.2"
+parking_lot = "0.12"
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+trybuild = "1"
+async-trait = "0.1"
