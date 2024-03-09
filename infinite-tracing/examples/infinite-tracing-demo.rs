@@ -1,5 +1,5 @@
 use ctor::ctor;
-use infinite_tracing::instrument;
+use infinite_tracing::{instrument, new_span_from_gcp_trace_id, new_span_with_random_trace_id};
 use log::kv::{Key, Value};
 use log::{debug, error, info, warn, LevelFilter};
 use logcall::*;
@@ -11,16 +11,16 @@ use serde_json::json;
 use std::any::Any;
 use std::borrow::Cow;
 use std::collections::BTreeMap;
-use std::io::Error;
+use std::io::{BufWriter, Error};
 use std::ops::Add;
 use std::str::FromStr;
 use std::time::Duration;
-use uuid::Uuid;
+
 
 #[instrument(ret)]
 fn log_all_calls_and_returns(a: u64, b: u64) -> Result<u64, Box<dyn std::error::Error>> {
     info!(intermediate=42; "A silly structured log"); // ==> span
-    Ok(a + b) // ==> estruturado ou no message
+    Ok(a + b)
 }
 
 #[instrument(ret, skip(c))]
@@ -51,10 +51,7 @@ fn sync_business_logic_function() {
 
 #[instrument]
 fn sync_endpoint_function() {
-    let trace_id = Uuid::new_v4().to_string();
-
-    let root_span = Span::root(full_name!(), SpanContext::random());
-    let _guard = root_span.set_local_parent();
+    let _guard = new_span_with_random_trace_id(full_name!());
 
     // Your custom logic here
     sync_business_logic_function();
@@ -79,26 +76,12 @@ async fn async_business_logic_function() {
 
 #[instrument]
 async fn async_endpoint_function() {
-    let uuid = Uuid::new_v4();
-    let trace_id = uuid.as_u128();
-    let trace_id_string = uuid.to_string();
-    let reconstructed_trace_id = Uuid::from_str(&trace_id_string)
-        .unwrap_or_else(|_| Uuid::new_v4())
-        .as_u128();
-    debug_assert_eq!(reconstructed_trace_id, trace_id);
-
-    // let root_span = Span::root(full_name!(), SpanContext::random());
-    let root_span = Span::root(
-        full_name!(),
-        SpanContext::new(TraceId(trace_id), SpanId::default()),
-    );
-    let _guard = root_span.set_local_parent();
-
+    let gcp_trace_id = "c951b27d3c8aa7fb6ca4aee909085ea1/1186820540535753586";
+    let _guard = new_span_from_gcp_trace_id(full_name!(), gcp_trace_id);
     async_business_logic_function().await;
-
     let a = 1; //Result::<u32, u32>::Ok(1);
     let b = 2;
-    info!(a, b; "This is the ASYNC endpoint function -- original trace_id_string is '{trace_id_string}'");
+    info!(a, b; "This is the ASYNC endpoint function -- original trace_id_string is '{gcp_trace_id}'");
 }
 
 #[tokio::main]
