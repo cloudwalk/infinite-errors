@@ -1,9 +1,12 @@
 //! Compares the performance of all known tracing options to our own.
 //!
+//! Run with:
+//!     `cargo bench >/dev/null`
+//!
 //! Analysis 2024-03-10:
 //!
-//!     Our version is between 7 and 9 times faster than the `tracing-subscriber` versions, both for the OVERHEAD
-//! and the THROUGHPUT cases.
+//!     Our version is between 7 and 9 times faster than the `tracing-subscriber-cw` version, for both for the THROUGHPUT
+//! and OVERHEAD cases, respectively:
 //!
 //!     Median values:
 //!
@@ -15,6 +18,11 @@
 //!     
 //!     ==> The OVERHEAD relation is    265.48 / 29.647 = 8.96
 //!     ==> The THROUGHPUT relation is  2104.1 / 301.70 = 6,97
+//!
+//!     Nonetheless, there is still room for improvements:
+//!       1. The current implementation in `structured_logger_glue.rs` may optimize the creation of Strings a step further;
+//!       2. A faster alternative to time serialization can be studied (instead of `Chrono`);
+//!       3. We may investigate `slog` or even our own logger, as `structured-logger` builds a `BTreeMap` for each log event.
 
 use std::{hint::black_box, io::BufWriter};
 
