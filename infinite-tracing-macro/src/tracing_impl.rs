@@ -34,10 +34,7 @@ pub fn instrument(parameters: MacroArgs, fn_item: ItemFn) -> proc_macro2::TokenS
         ReturnLogOptions::LogOkOnly => {
             quote!(ok=#ok_result_log_level,)
         }
-        ReturnLogOptions::LogResult => {
-            quote!(err=#err_result_log_level, ok=#ok_result_log_level,)
-        }
-        ReturnLogOptions::LogNonFallible => {
+        ReturnLogOptions::LogAnyRet => {
             quote!(egress=#ok_result_log_level,)
         }
     };
@@ -70,7 +67,6 @@ pub fn instrument(parameters: MacroArgs, fn_item: ItemFn) -> proc_macro2::TokenS
 #[cfg(test)]
 mod tests {
     use super::*;
-    use quote::ToTokens;
     use syn::{Block, ReturnType, Signature, Visibility};
 
     /// If no parameters are provided, the `minitrace` annotation should be issued,

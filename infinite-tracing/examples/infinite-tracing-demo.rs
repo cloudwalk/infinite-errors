@@ -1,33 +1,17 @@
-use ctor::ctor;
-use infinite_tracing::{instrument, new_span_from_gcp_trace_id, new_span_with_random_trace_id};
-use log::kv::{Key, Value};
-use log::{debug, error, info, warn, LevelFilter};
-use logcall::*;
-use minitrace::collector::{Config, ConsoleReporter, Reporter};
-use minitrace::prelude::*;
-use minitrace::Event;
-use serde::Serialize;
-use serde_json::json;
-use std::any::Any;
-use std::borrow::Cow;
-use std::collections::BTreeMap;
-use std::io::{BufWriter, Error};
-use std::ops::Add;
-use std::str::FromStr;
-use std::time::Duration;
-
+use infinite_tracing::*;
+use log::info;
 
 #[instrument(ret)]
 fn log_all_calls_and_returns(a: u64, b: u64) -> Result<u64, Box<dyn std::error::Error>> {
-    info!(intermediate=42; "A silly structured log"); // ==> span
+    info!(intermediate=42; "A silly structured log");
     Ok(a + b)
 }
 
-#[instrument(ret, skip(c))]
+#[instrument(ret, skip(_c))]
 fn log_all_calls_unwanted_parameters<Any>(
     a: u64,
     b: u64,
-    c: Any,
+    _c: Any,
 ) -> Result<u64, Box<dyn std::error::Error>> {
     Ok(a + b)
 }

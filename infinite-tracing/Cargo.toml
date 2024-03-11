@@ -26,8 +26,21 @@ uuid = { version = "1.7", features = ["v4"], optional = true }
 
 
 [dev-dependencies]
-ctor = "0.2"
 parking_lot = "0.12"
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 trybuild = "1"
 async-trait = "0.1"
+
+
+# dependencies for benchmarks
+#############################
+
+criterion = { version = "0.5", features=["html_reports"] }
+#tracing_stackdriver = { git = "https://github.com/cloudwalk/tracing-stackdriver", branch = "master" }
+tracing-stackdriver = { path = "../../tracing-stackdriver/" }
+tracing = "0.1.34"
+tracing-subscriber = { version = "0.3.18", features = ["json"] }
+
+[[bench]]
+name = "tracers"
+harness = false

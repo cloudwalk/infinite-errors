@@ -14,6 +14,7 @@ pub fn setup_structured_logger() {
                 .unwrap_or(String::from("<MISSING LEVEL>"));
             // Add the log record as an event in the current local span
             Event::add_to_local_parent(level, || {
+                #[allow(clippy::needless_borrowed_reference)]
                 entries
                     .iter()
                     .filter(|(&ref k, _v)| {
@@ -23,6 +24,7 @@ pub fn setup_structured_logger() {
                         "message" => (Cow::Borrowed("message"), v.to_string()),
                         "timestamp" => {
                             let timestamp_ms = v.to_u64().unwrap_or(u64::MAX);
+                            #[allow(deprecated)]
                             let chrono_time = chrono::NaiveDateTime::from_timestamp_opt(
                                 (timestamp_ms / 1_000) as i64,
                                 1_000_000 * (timestamp_ms % 1_000) as u32,

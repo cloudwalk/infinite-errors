@@ -31,10 +31,8 @@ pub enum ReturnLogOptions {
     LogErrOnly,
     /// Provided the function returns a `Result`, logs only if it is `Ok`
     LogOkOnly,
-    /// Logs any variant of the function -- that must return a `Result`
-    LogResult,
-    /// Logs the return value of the function -- that is not `Result`
-    LogNonFallible,
+    /// Logs any return value of the function -- Whether it as `Result` or not.
+    LogAnyRet,
 }
 
 impl Parse for MacroArgs {
@@ -68,13 +66,13 @@ impl Parse for MacroArgs {
                             macro_args.log_return = log_return_set
                                 .replace(())
                                 .map(|_| Err(syn::Error::new(Span::call_site(), String::from(INVALID_IDENTIFIER_COMBINATION) )))
-                                .unwrap_or(Ok(ReturnLogOptions::LogResult))?;
+                                .unwrap_or(Ok(ReturnLogOptions::LogOkOnly))?;
                         },
                         "ret" => {
                             macro_args.log_return = log_return_set
                                 .replace(())
                                 .map(|_| Err(syn::Error::new(Span::call_site(), String::from(INVALID_IDENTIFIER_COMBINATION) )))
-                                .unwrap_or(Ok(ReturnLogOptions::LogNonFallible))?;
+                                .unwrap_or(Ok(ReturnLogOptions::LogAnyRet))?;
                         },
                         "skip_all" => {
                             macro_args.log_parameters = skip_set.replace(())
@@ -124,6 +122,7 @@ impl Parse for MacroArgs {
                     }
                 } else if input.parse::<Token![=]>().is_ok() {
                     // name=value parsing
+                    #[allow(clippy::match_single_binding)]
                     match ident.to_string().as_str() {
                         /* FILL HERE MORE OPTIONS IN THE FUTURE */
                         _ => {
@@ -170,7 +169,7 @@ mod tests {
     fn typical_usage() {
         let parsed_args: MacroArgs = parse_str(r#"err, skip(hello, world), a=b"#).unwrap();
         assert_eq!(parsed_args.log_return, ReturnLogOptions::LogErrOnly);
-        assert_eq!(parsed_args.log_parameters, true);
+        assert!(parsed_args.log_parameters);
         assert_eq!(parsed_args.parameters_to_skip, vec!["hello", "world"]);
         assert_eq!(
             parsed_args.custom_params,
@@ -225,7 +224,7 @@ mod tests {
         let parsed_args: MacroArgs = parse_str(r#"ret"#).unwrap();
         assert_eq!(
             parsed_args.log_return,
-            ReturnLogOptions::LogNonFallible,
+            ReturnLogOptions::LogAnyRet,
             "Unexpected `log_return`"
         );
         assert!(parsed_args.log_parameters);
@@ -233,7 +232,7 @@ mod tests {
         let parsed_args: MacroArgs = parse_str(r#"ok"#).unwrap();
         assert_eq!(
             parsed_args.log_return,
-            ReturnLogOptions::LogResult,
+            ReturnLogOptions::LogOkOnly,
             "Unexpected `log_return`"
         );
         assert!(parsed_args.log_parameters);

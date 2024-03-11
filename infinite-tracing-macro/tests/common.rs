@@ -4,19 +4,17 @@ use minitrace::Span;
 use once_cell::sync::Lazy;
 use parking_lot::lock_api::RawMutex as _RawMutexInit;
 use parking_lot::{Mutex, RawMutex};
-use std::marker::PhantomData;
 use std::sync::Arc;
 use std::time::Duration;
 
 /// Initializes `minitrace` and exposes the `log_collector_generator` function, which is used by [follow_logs()].
-static LOG_COLLECTOR_GENERATOR: Lazy<
-    Box<dyn Fn(Span, LocalParentGuard) -> Box<dyn FnOnce() -> Vec<String>> + Send + Sync>,
-> = Lazy::new(|| {
+static LOG_COLLECTOR_GENERATOR: Lazy<Box<GeneratorFn>> = Lazy::new(|| {
     let reporter = LogCollector::new();
     let generate_log_collector = reporter.log_collector_generator();
     infinite_tracing::setup_infinite_tracing(reporter.writer());
     Box::new(generate_log_collector)
 });
+type GeneratorFn = dyn Fn(Span, LocalParentGuard) -> Box<dyn FnOnce() -> Vec<String>> + Send + Sync;
 
 /// Tests should call this to start capturing log events.\
 /// The returned value is a closure that should be called to
@@ -25,8 +23,7 @@ pub fn follow_logs() -> impl FnOnce() -> Vec<String> {
     let generate_log_collector = LOG_COLLECTOR_GENERATOR.as_ref(); // tricky line: causes the static initialization code to run **before** we call the next `minitrace` functions
     let root_span = Span::root("test method", SpanContext::random());
     let guard = root_span.set_local_parent();
-    let collector = generate_log_collector(root_span, guard);
-    collector
+    generate_log_collector(root_span, guard)
 }
 
 /// Tricky struct to allow capturing `minitrace` log events, for test assertions:
@@ -50,12 +47,18 @@ pub struct LogCollector {
     usage_lock: Arc<RawMutex>,
 }
 
-impl LogCollector {
-    pub fn new() -> Self {
+impl Default for LogCollector {
+    fn default() -> Self {
         Self {
             collected: Arc::new(Mutex::new(Vec::new())),
             usage_lock: Arc::new(RawMutex::INIT),
         }
+    }
+}
+
+impl LogCollector {
+    pub fn new() -> Self {
+        Self::default()
     }
 
     /// Gives out a `Write` implementation that will put lines into [Self::collected].
@@ -75,7 +78,7 @@ impl LogCollector {
                 Ok(buff.len())
             }
             fn flush(&mut self) -> Result<(), std::io::Error> {
-                if self.buffer.len() > 0 {
+                if !self.buffer.is_empty() {
                     let last_line = String::from_utf8_lossy(&self.buffer).to_string();
                     self.collected.lock().push(last_line);
                 }
@@ -112,7 +115,7 @@ impl LogCollector {
         // the log collector was called: a new test started:
         usage_lock.lock();
         collected.lock().clear();
-        let collected = Arc::clone(&collected);
+        let collected = Arc::clone(collected);
         move || {
             drop(span);
             drop(guard);

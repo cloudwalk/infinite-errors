@@ -2,12 +2,11 @@ mod features;
 mod minitrace_glue;
 mod structured_logger_glue;
 
-use std::borrow::Cow;
 use minitrace::collector::{SpanContext, SpanId, TraceId};
+use std::borrow::Cow;
 
 pub use infinite_tracing_macro::instrument;
 pub use minitrace::full_name;
-
 
 /// Should be executed at the application start -- once.
 /// Example:
@@ -29,14 +28,14 @@ pub fn teardown_intinite_tracing() {
     structured_logger_glue::teardown_structured_logger();
 }
 
-
 /// Use this if you have a `u128` `trace_id` from a processing started elsewhere.\
 /// The caller must retain the returned value until the processing ends.
-pub fn new_span_from_u128_trace_id(name: impl Into<Cow<'static, str>>, trace_id: u128) -> (minitrace::prelude::Span, minitrace::local::LocalParentGuard) {
-    let root_span = minitrace::Span::root(
-        name,
-        SpanContext::new(TraceId(trace_id), SpanId::default()),
-    );
+pub fn new_span_from_u128_trace_id(
+    name: impl Into<Cow<'static, str>>,
+    trace_id: u128,
+) -> (minitrace::prelude::Span, minitrace::local::LocalParentGuard) {
+    let root_span =
+        minitrace::Span::root(name, SpanContext::new(TraceId(trace_id), SpanId::default()));
     let guard = root_span.set_local_parent();
     (root_span, guard)
 }
@@ -46,23 +45,30 @@ pub fn new_span_from_u128_trace_id(name: impl Into<Cow<'static, str>>, trace_id:
 /// the first 16 hex chars before '/' as well as the number after '/' -- the last 16 hex chars before '/' will be filled with 0
 /// if you want to serialize a `u128` to a GCP trace_id. Please see [u128_to_gcp_trace_id()].
 /// The caller must retain the returned value until the processing ends.
-pub fn new_span_from_gcp_trace_id(name: impl Into<Cow<'static, str>>, trace_id: &str) -> (minitrace::prelude::Span, minitrace::local::LocalParentGuard) {
+pub fn new_span_from_gcp_trace_id(
+    name: impl Into<Cow<'static, str>>,
+    trace_id: &str,
+) -> (minitrace::prelude::Span, minitrace::local::LocalParentGuard) {
     let trace_id = gcp_trace_id_to_u128(trace_id).unwrap_or(0);
     new_span_from_u128_trace_id(name, trace_id)
 }
 
 /// Use this if you have a UUID String as `trace_id`, in the form "1042e8d7-fdb2-42cd-b140-9eaaa671d6c6".\
 /// The caller must retain the returned value until the processing ends.
-pub fn new_span_from_uuid(name: impl Into<Cow<'static, str>>, trace_id: &str) -> (minitrace::prelude::Span, minitrace::local::LocalParentGuard) {
+pub fn new_span_from_uuid(
+    name: impl Into<Cow<'static, str>>,
+    trace_id: &str,
+) -> (minitrace::prelude::Span, minitrace::local::LocalParentGuard) {
     let trace_id = uuid_to_u128(trace_id).unwrap_or(0);
     new_span_from_u128_trace_id(name, trace_id)
 }
 
-pub fn new_span_with_random_trace_id(name: impl Into<Cow<'static, str>>) -> (minitrace::prelude::Span, minitrace::local::LocalParentGuard) {
+pub fn new_span_with_random_trace_id(
+    name: impl Into<Cow<'static, str>>,
+) -> (minitrace::prelude::Span, minitrace::local::LocalParentGuard) {
     let trace_id = SpanContext::random().trace_id.0;
     new_span_from_u128_trace_id(name, trace_id)
 }
-
 
 /// Down-casts a GCP `trace_id` String, in the form "c951b27d3c8aa7fb6ca4aee909085ea1/1186820540535753586"
 /// into a `u128` -- a lossy operation that can be partially reverted by [u128_to_gcp_trace_id].\
@@ -111,18 +117,21 @@ fn uuid_to_u128(uuid: &str) -> Option<u128> {
     Some(parsed_value)
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn gcp_trace_id() {
-        let original_gcp_trace_id             = "c951b27d3c8aa7fb6ca4aee909085ea1/1186820540535753586";
-        let expected_reconverted_gcp_trace_id = "c951b27d3c8aa7fb0000000000000000/1186820540535753586";
+        let original_gcp_trace_id = "c951b27d3c8aa7fb6ca4aee909085ea1/1186820540535753586";
+        let expected_reconverted_gcp_trace_id =
+            "c951b27d3c8aa7fb0000000000000000/1186820540535753586";
         let u128_trace_id = gcp_trace_id_to_u128(original_gcp_trace_id).expect("Parsing failed");
         let observed_reconverted_gcp_trace_id = u128_to_gcp_trace_id(u128_trace_id);
-        assert_eq!(observed_reconverted_gcp_trace_id, expected_reconverted_gcp_trace_id, "GCP trace id conversion functions are wrong");
+        assert_eq!(
+            observed_reconverted_gcp_trace_id, expected_reconverted_gcp_trace_id,
+            "GCP trace id conversion functions are wrong"
+        );
     }
 
     #[test]
@@ -130,6 +139,9 @@ mod tests {
         let uuid = "550e8400-e29b-41d4-a716-446655440000";
         let expected_u128 = 113059749145936325402354257176981405696_u128;
         let observed_u128 = uuid_to_u128(uuid).expect("Parsing failed");
-        assert_eq!(observed_u128, expected_u128, "UUID conversion functions are wrong");
+        assert_eq!(
+            observed_u128, expected_u128,
+            "UUID conversion functions are wrong"
+        );
     }
 }
