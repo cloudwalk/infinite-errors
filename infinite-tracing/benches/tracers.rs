@@ -78,7 +78,7 @@ fn bench_tracers(criterion: &mut Criterion) {
 
     // setup
     use tracing_subscriber::layer::SubscriberExt;
-    let stackdriver = tracing_stackdriver::layer(); // writes to std::io::Stdout
+    let stackdriver = tracing_stackdriver_cw::layer(); // writes to std::io::Stdout
     let subscriber = tracing_subscriber::Registry::default().with(stackdriver);
     tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
 

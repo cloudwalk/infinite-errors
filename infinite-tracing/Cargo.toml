@@ -36,8 +36,7 @@ async-trait = "0.1"
 #############################
 
 criterion = { version = "0.5", features=["html_reports"] }
-#tracing_stackdriver = { git = "https://github.com/cloudwalk/tracing-stackdriver", branch = "master" }
-tracing-stackdriver = { path = "../../tracing-stackdriver/" }
+tracing-stackdriver-cw = { git = "https://github.com/cloudwalk/tracing-stackdriver/", branch = "master" }
 tracing = "0.1.34"
 tracing-subscriber = { version = "0.3.18", features = ["json"] }
 
