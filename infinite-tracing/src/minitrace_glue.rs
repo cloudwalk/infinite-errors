@@ -55,7 +55,7 @@ impl<WriteImpl: std::io::Write + Send + 'static> Reporter for JsonReporter<Write
                 });
                 let mut write_op = || {
                     serde_json::to_writer(&mut self.writer, &log_line)?;
-                    self.writer.write(&b"\n")
+                    self.writer.write(b"\n")
                 };
                 write_op().expect("`infinite-tracing`: `minitrace` glue: Writer errored out");
             }
