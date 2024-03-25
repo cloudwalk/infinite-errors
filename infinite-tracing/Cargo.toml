@@ -1,0 +1,45 @@
+[package]
+name = "infinite-tracing"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[features]
+u128_trace_id = []        # outputs `trace_id` as `u128`;
+gcp_trace_id  = []        # outputs `trace_id` in the GCP format -- like `c951b27d3c8aa7fb6ca4aee909085ea1/1186820540535753586`;
+uuid_trace_id = ["uuid"]  # outputs `trace_id` as a string returned by the `uuid` crate;
+
+default = []
+
+
+[dependencies]
+log = "0.4"
+infinite-tracing-macro = { path = "../infinite-tracing-macro" }
+logcall = { git = "https://github.com/cloudwalk/logcall", branch = "main" }
+minitrace = { version = "0.6", features = ["enable"] }
+structured-logger = "1"
+chrono = "0.4"
+serde = { version = "1.0.197", features = ["derive"] }
+serde_json = "1.0.114"
+uuid = { version = "1.7", features = ["v4"], optional = true }
+
+
+[dev-dependencies]
+parking_lot = "0.12"
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+trybuild = "1"
+async-trait = "0.1"
+
+
+# dependencies for benchmarks
+#############################
+
+criterion = { version = "0.5", features=["html_reports"] }
+tracing-stackdriver-cw = { git = "https://github.com/cloudwalk/tracing-stackdriver/", branch = "master" }
+tracing = "0.1.34"
+tracing-subscriber = { version = "0.3.18", features = ["json"] }
+
+[[bench]]
+name = "tracers"
+harness = false

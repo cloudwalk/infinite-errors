@@ -1,3 +1,6 @@
 [workspace]
-members = ["infinite-errors", "infinite-errors-macros"]
+members = [
+    "infinite-errors", "infinite-errors-macros",
+    "infinite-tracing", "infinite-tracing-macro",
+]
 resolver = "2"
