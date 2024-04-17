@@ -3,9 +3,6 @@ use serde_json::json;
 use once_cell::sync::Lazy;
 
 
-static EMPTY_MAP: Lazy<serde_json::Map<String, serde_json::Value>> = Lazy::new(|| serde_json::Map::with_capacity(0));
-
-
 pub fn setup_minitrace(output_fn: impl std::io::Write + Send + 'static) {
     let json_reporter = JsonReporter::new(output_fn);
     minitrace::set_reporter(json_reporter, Config::default());
@@ -38,7 +35,7 @@ impl<WriteImpl: std::io::Write + Send + 'static> Reporter for JsonReporter<Write
                 let mut timestamp = "<MISSING TIMESTAMP>";
                 let mut file = "";
                 let mut line = "";
-                let mut structured_fields = None;   // Lazy initialization to squeeze a little bit of performance
+                let mut structured_fields = serde_json::Map::new();
                 for (property_key, property_value) in &event.properties {
                     match property_key.as_ref() {
                         "timestamp" => timestamp = property_value,
@@ -47,7 +44,6 @@ impl<WriteImpl: std::io::Write + Send + 'static> Reporter for JsonReporter<Write
                         "line" => line = property_value,
                         _ => {
                             structured_fields
-                                .get_or_insert_with(|| serde_json::Map::new())
                                 .insert(property_key.to_string(), json!(property_value));
                         }
                     }
@@ -56,7 +52,7 @@ impl<WriteImpl: std::io::Write + Send + 'static> Reporter for JsonReporter<Write
                     "time": timestamp,
                     "target": target,
                     "logging.googleapis.com/sourceLocation": {"FILE": file, "LINE": line},
-                    "span": structured_fields.as_ref().unwrap_or(&*EMPTY_MAP),
+                    "span": structured_fields,
                     "traceId": trace_id,
                     "severity": severity,
                     "message": message,
