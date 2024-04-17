@@ -1,5 +1,10 @@
 use minitrace::collector::{Config, Reporter, SpanRecord};
 use serde_json::json;
+use once_cell::sync::Lazy;
+
+
+static EMPTY_MAP: Lazy<serde_json::Map<String, serde_json::Value>> = Lazy::new(|| serde_json::Map::with_capacity(0));
+
 
 pub fn setup_minitrace(output_fn: impl std::io::Write + Send + 'static) {
     let json_reporter = JsonReporter::new(output_fn);
@@ -21,6 +26,8 @@ impl<WriteImpl: std::io::Write> JsonReporter<WriteImpl> {
 }
 
 impl<WriteImpl: std::io::Write + Send + 'static> Reporter for JsonReporter<WriteImpl> {
+
+
     fn report(&mut self, spans: &[SpanRecord]) {
         for span in spans {
             let trace_id = crate::features::convert_trace_id(span.trace_id.0);
@@ -31,7 +38,7 @@ impl<WriteImpl: std::io::Write + Send + 'static> Reporter for JsonReporter<Write
                 let mut timestamp = "<MISSING TIMESTAMP>";
                 let mut file = "";
                 let mut line = "";
-                let mut structured_fields = serde_json::Map::new();
+                let mut structured_fields = None;   // Lazy initialization to squeeze a little bit of performance
                 for (property_key, property_value) in &event.properties {
                     match property_key.as_ref() {
                         "timestamp" => timestamp = property_value,
@@ -40,6 +47,7 @@ impl<WriteImpl: std::io::Write + Send + 'static> Reporter for JsonReporter<Write
                         "line" => line = property_value,
                         _ => {
                             structured_fields
+                                .get_or_insert_with(|| serde_json::Map::new())
                                 .insert(property_key.to_string(), json!(property_value));
                         }
                     }
@@ -48,7 +56,7 @@ impl<WriteImpl: std::io::Write + Send + 'static> Reporter for JsonReporter<Write
                     "time": timestamp,
                     "target": target,
                     "logging.googleapis.com/sourceLocation": {"FILE": file, "LINE": line},
-                    "span": structured_fields,
+                    "span": structured_fields.as_ref().unwrap_or(&*EMPTY_MAP),
                     "traceId": trace_id,
                     "severity": severity,
                     "message": message,

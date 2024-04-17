@@ -20,6 +20,7 @@ pub fn instrument(
     let parameters = syn::parse_macro_input!(macro_args_tokens as MacroArgs);
 
     let function_definition_tokens = tracing_impl::instrument(parameters, fn_item);
-    //panic!("FN is defined AS:\n{}", function_definition_tokens.to_string());
+    // uncomment to debug:
+    //panic!("`infinite-tracing` DEBUG param is enabled: FUNCTION is defined as:\n{}", function_definition_tokens.to_string());
     function_definition_tokens.into()
 }

@@ -1,4 +1,4 @@
-use proc_macro2::Span;
+use proc_macro2::{Literal, Span};
 use quote::ToTokens;
 use syn::parse::{Parse, ParseStream};
 use syn::punctuated::Punctuated;
@@ -10,6 +10,8 @@ pub struct MacroArgs {
     pub log_parameters: bool,
     pub parameters_to_skip: Vec<String>,
     pub custom_params: Vec<(String, String)>,
+    /// if set, passes the `debug` param to the `logcall` crate -- for inspection of the generated function results
+    pub logcall_debug: bool,
 }
 impl Default for MacroArgs {
     fn default() -> Self {
@@ -18,6 +20,7 @@ impl Default for MacroArgs {
             log_parameters: true,
             parameters_to_skip: vec![],
             custom_params: vec![],
+            logcall_debug: false,
         }
     }
 }
@@ -79,8 +82,11 @@ impl Parse for MacroArgs {
                                 .map(|_| Err(syn::Error::new(Span::call_site(), String::from(INVALID_SKIP_COMBINATION) )))
                                 .unwrap_or(Ok(false))?;
 
-                        }
-                        _ => return Err(syn::Error::new(Span::call_site(), format!("Unknown identifier parameter '{}' -- known ones are: 'err', 'ok', 'ret', 'skip_all'", ident))),
+                        },
+                        "logcall_debug" => {
+                            macro_args.logcall_debug = true;
+                        },
+                        _ => return Err(syn::Error::new(Span::call_site(), format!("Unknown identifier parameter '{}' -- known ones are: 'err', 'ok', 'ret', 'skip_all', 'logcall_debug'", ident))),
                     }
                 } else if input.lookahead1().peek(token::Paren) {
                     // name(identifier list) parsing -- "func"
@@ -128,10 +134,13 @@ impl Parse for MacroArgs {
                         _ => {
                             // custom name=val parameters
                             let name = ident.to_string();
-                            let val = input.parse::<Ident>()
-                                .map_err(|err| syn::Error::new(Span::call_site(), format!("Can't parse `val` for custom `name`=`val` parameter for name '{}': {:?}", name, err)))?
+                            let lit_val = input.parse::<Literal>()
+                                .map_err(|err| syn::Error::new(Span::call_site(), format!("Can't parse `val` as literal for custom `name`=`val` parameter for name '{}': {:?}", name, err)))?
                                 .to_string();
-                            macro_args.custom_params.push((name, val));
+                            let val = lit_val
+                                .trim_matches('\'')
+                                .trim_matches('"');
+                            macro_args.custom_params.push((name, val.to_string()));
                         }
                     }
                 } else {
@@ -167,7 +176,7 @@ mod tests {
 
     #[test]
     fn typical_usage() {
-        let parsed_args: MacroArgs = parse_str(r#"err, skip(hello, world), a=b"#).unwrap();
+        let parsed_args: MacroArgs = parse_str(r#"err, skip(hello, world), a='b'"#).unwrap();
         assert_eq!(parsed_args.log_return, ReturnLogOptions::LogErrOnly);
         assert!(parsed_args.log_parameters);
         assert_eq!(parsed_args.parameters_to_skip, vec!["hello", "world"]);
@@ -175,6 +184,19 @@ mod tests {
             parsed_args.custom_params,
             vec![("a".to_string(), "b".to_string())]
         );
+    }
+
+    #[test]
+    fn debug() {
+        let parsed_args: MacroArgs = parse_str(r#"err, skip(hello, world), a='b', logcall_debug"#).unwrap();
+        assert_eq!(parsed_args.log_return, ReturnLogOptions::LogErrOnly);
+        assert!(parsed_args.log_parameters);
+        assert_eq!(parsed_args.parameters_to_skip, vec!["hello", "world"]);
+        assert_eq!(
+            parsed_args.custom_params,
+            vec![("a".to_string(), "b".to_string())]
+        );
+        assert!(parsed_args.logcall_debug, "`logcall_debug` arg was specified but not taken into account");
     }
 
     #[test]
@@ -282,7 +304,7 @@ mod tests {
         assert!(parsed_args.is_err());
         assert_eq!(
             parsed_args.unwrap_err().to_string(),
-            r#"Unknown identifier parameter 'nonexistingparam' -- known ones are: 'err', 'ok', 'ret', 'skip_all'"#
+            r#"Unknown identifier parameter 'nonexistingparam' -- known ones are: 'err', 'ok', 'ret', 'skip_all', 'logcall_debug'"#
         );
     }
 

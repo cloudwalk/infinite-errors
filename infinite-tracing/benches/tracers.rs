@@ -40,7 +40,7 @@ fn bench_tracers(criterion: &mut Criterion) {
 
     let bench_id = "baseline method call";
     group.bench_function(bench_id, |bencher| {
-        bencher.iter(|| black_box({ baseline_method(bench_id.as_ptr() as u32) }))
+        bencher.iter(|| black_box(baseline_method(bench_id.as_ptr() as u32)))
     });
 
     // infinite_tracing
@@ -62,13 +62,13 @@ fn bench_tracers(criterion: &mut Criterion) {
     // scenario: no tracing nor logging is done -- the method doesn't end in `Err`
     let bench_id = "`infinite-tracing` OVERHEAD";
     group.bench_function(bench_id, |bencher| {
-        bencher.iter(|| black_box({ infinite_tracing_overhead_method(bench_id.as_ptr() as u32) }))
+        bencher.iter(|| black_box(infinite_tracing_overhead_method(bench_id.as_ptr() as u32)))
     });
 
-    // scenario: tracing & loggig is done -- the method ends in `Err`
+    // scenario: tracing & logging is done -- the method ends in `Err`
     let bench_id = "`infinite-tracing` THROUGHPUT";
     group.bench_function(bench_id, |bencher| {
-        bencher.iter(|| black_box({ infinite_tracing_throughput_method(bench_id.as_ptr() as u32) }))
+        bencher.iter(|| black_box(infinite_tracing_throughput_method(bench_id.as_ptr() as u32)))
     });
 
     // Cloudwalk's tracing-stackdriver
@@ -94,14 +94,14 @@ fn bench_tracers(criterion: &mut Criterion) {
     let bench_id = "Cloudwalk's `tracing-stackdriver` OVERHEAD";
     group.bench_function(bench_id, |bencher| {
         bencher
-            .iter(|| black_box({ tracing_stackdriver_overhead_method(bench_id.as_ptr() as u32) }))
+            .iter(|| black_box(tracing_stackdriver_overhead_method(bench_id.as_ptr() as u32)))
     });
 
-    // scenario: tracing & loggig is done -- the method ends in `Err`
+    // scenario: tracing & logging is done -- the method ends in `Err`
     let bench_id = "Cloudwalk's `tracing-stackdriver` THROUGHPUT";
     group.bench_function(bench_id, |bencher| {
         bencher
-            .iter(|| black_box({ tracing_stackdriver_throughput_method(bench_id.as_ptr() as u32) }))
+            .iter(|| black_box(tracing_stackdriver_throughput_method(bench_id.as_ptr() as u32)))
     });
 
     group.finish();

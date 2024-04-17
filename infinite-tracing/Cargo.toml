@@ -16,13 +16,14 @@ default = []
 [dependencies]
 log = "0.4"
 infinite-tracing-macro = { path = "../infinite-tracing-macro" }
-logcall = { git = "https://github.com/cloudwalk/logcall", branch = "main" }
+logcall = { git = "https://github.com/cloudwalk/logcall", branch = "log_kv_fix" }
 minitrace = { version = "0.6", features = ["enable"] }
 structured-logger = "1"
 chrono = "0.4"
 serde = { version = "1.0.197", features = ["derive"] }
 serde_json = "1.0.114"
 uuid = { version = "1.7", features = ["v4"], optional = true }
+once_cell = "1.19.0"
 
 
 [dev-dependencies]
