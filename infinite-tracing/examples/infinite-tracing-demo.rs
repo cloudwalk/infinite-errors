@@ -1,5 +1,9 @@
+use std::fmt::{Display, Formatter};
+use std::task::Context;
 use infinite_tracing::*;
 use log::info;
+use minitrace::collector::{SpanContext, SpanId, TraceId};
+use tracing::instrument::WithSubscriber;
 
 #[instrument(ret)]
 fn log_all_calls_and_returns(a: u64, b: u64) -> Result<u64, Box<dyn std::error::Error>> {
@@ -22,14 +26,32 @@ fn log_error_calls_only(a: u64, b: u64) -> Result<u64, Box<dyn std::error::Error
         .ok_or_else(|| Box::from(format!("Couldn't subtract {b} from {a}")))
 }
 
+// Uncomment the following function to see a demonstration of this library's debug capabilities
+// #[instrument(err, debug)]
+// fn fail_to_compile_but_outputs_the_real_code(a: u64, b: u64) -> Result<u64, Box<dyn std::error::Error>> {
+//     a.checked_sub(b)
+//         .ok_or_else(|| Box::from(format!("Couldn't subtract {b} from {a}")))
+// }
+
 #[instrument]
 fn sync_database_function() {
-    info!("This is the SYNC database function: `log_error_calls()` will be called, but it will produce an Ok Result -- so no logs should follow");
+    info!("This is the SYNC database function: `log_error_calls()` will be called, but it will produce an Ok Result -- so no logs should follow. Nonetheless, this log should include the `ctx` variable set on the upstream function");
     _ = log_error_calls_only(10, 3);
 }
 
 #[instrument]
 fn sync_business_logic_function() {
+    // add something to the span -- to be included in the logs made downstream:
+    #[derive(Debug)]
+    struct Context {
+        state: String,
+        metrics: u32,
+    }
+    let ctx = Context {
+        state: "My Context has a State".to_string(),
+        metrics: 42,
+    };
+    info!(ctx:?; "Context is shared here. See 'span'");
     sync_database_function();
 }
 

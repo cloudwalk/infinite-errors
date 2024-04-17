@@ -48,12 +48,17 @@ pub fn instrument(parameters: MacroArgs, fn_item: ItemFn) -> proc_macro2::TokenS
         // no `skip_options` list present means that no input params will be logged for the function call
         quote!()
     };
+    let debug = if parameters.logcall_debug {
+        quote!(debug=true, )
+    } else {
+        quote!()
+    };
 
     let logcall_annotation_tokens = if degress_params.is_empty() && ingress_params.is_empty() {
         quote!()
     } else {
         quote!(
-            #[::logcall::logcall(#degress_params #ingress_params #skip_params)]
+            #[::logcall::logcall(#degress_params #ingress_params #skip_params #debug)]
         )
     };
 

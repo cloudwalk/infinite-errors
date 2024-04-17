@@ -117,6 +117,14 @@ fn uuid_to_u128(uuid: &str) -> Option<u128> {
     Some(parsed_value)
 }
 
+// experimental
+macro_rules! span {
+    ($key:expr, $value:expr) => {
+        let _minitrace_guard = ::minitrace::Span::new().enter();
+        let _minitrace_event_guard = ::minitrace::LocalEventGuard::new($key, $value);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

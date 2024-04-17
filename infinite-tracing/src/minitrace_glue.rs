@@ -1,5 +1,7 @@
 use minitrace::collector::{Config, Reporter, SpanRecord};
 use serde_json::json;
+use once_cell::sync::Lazy;
+
 
 pub fn setup_minitrace(output_fn: impl std::io::Write + Send + 'static) {
     let json_reporter = JsonReporter::new(output_fn);
@@ -21,6 +23,8 @@ impl<WriteImpl: std::io::Write> JsonReporter<WriteImpl> {
 }
 
 impl<WriteImpl: std::io::Write + Send + 'static> Reporter for JsonReporter<WriteImpl> {
+
+
     fn report(&mut self, spans: &[SpanRecord]) {
         for span in spans {
             let trace_id = crate::features::convert_trace_id(span.trace_id.0);
