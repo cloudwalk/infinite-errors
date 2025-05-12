@@ -81,7 +81,7 @@ macro_rules! declare_error_type {
 
         impl ::std::fmt::Display for Error {
             fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
-                write!(f, "[{}] {}", self.location, self.kind)?;
+                write!(f, "{}", self.kind)?;
                 if let Some(cause) = &self.cause {
                     write!(f, ": {cause}")?;
                 }
